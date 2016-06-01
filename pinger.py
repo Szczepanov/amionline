@@ -7,11 +7,14 @@ from time import sleep
 
 
 # Returns true if host responds to ping request
-def ping(host="8.8.8.8"):
+def ping(timeout=1000, host="8.8.8.8"):
     if platform.system().lower() == "windows":
-        strPingParameters = "-n 1"
+        #timeout in miliseconds
+        strPingParameters = "-n 1" + " -w " + str(timeout)
     else:
-        strPingParameters = "-c 1"
+        #timeout in seconds
+        strPingParameters = "-c 1" + " -W " + str(timeout/1000)
+    # print("ping " + strPingParameters + " " + host)
     return os.system("ping " + strPingParameters + " " + host) == 0
 
 
@@ -21,7 +24,7 @@ def writeLogs(content, filename='logs.txt'):
     # else:
     #     content = str(content)
     file = open(filename, "a+")
-    file.write(content)
+    file.write(str(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")) + " " + content)
     file.close()
 
 
@@ -29,6 +32,8 @@ def main(argv):
     host = ""
     logLocation = ""
     interval = 20
+    connectionFlag = ping()
+    stateChange = datetime.datetime.now()
     try:
         opts, args = getopt.getopt(argv, "hi:o", ["ipaddress=", "logs=", "interval="])
     except getopt.GetoptError:
@@ -48,10 +53,24 @@ def main(argv):
     # print(logLocation)
     # print(interval)
     while 1:
-        if ping(host):
-            writeLogs("\n" + str(datetime.datetime.now()) + " " + " UP", logLocation)
-        else:
-            writeLogs("\n" + str(datetime.datetime.now()) + " " + " DOWN", logLocation)
+        if ping(int(interval)*1000, host) and connectionFlag:
+            writeLogs("UP\n", logLocation)
+        elif not ping(int(interval)*1000, host) and connectionFlag:
+            connectionFlag = False
+            differenceTemp = abs(stateChange - datetime.datetime.now())
+            difference = divmod(differenceTemp.days * 86400 + differenceTemp.seconds, 60)
+            writeLogs("Was UP for " + str(difference[0]) + " minutes and " + str(difference[1]) + " seconds.\n",
+                      logLocation)
+            stateChange = datetime.datetime.now()
+        elif not ping(int(interval)*1000, host) and not connectionFlag:
+            writeLogs("DOWN\n", logLocation)
+        elif ping(int(interval)*1000, host) and not connectionFlag:
+            connectionFlag = True
+            differenceTemp = abs(stateChange - datetime.datetime.now())
+            difference = divmod(differenceTemp.days * 86400 + differenceTemp.seconds, 60)
+            writeLogs("Was DOWN for " + str(difference[0]) + " minutes and " + str(difference[1]) + " seconds.\n",
+                      logLocation)
+            stateChange = datetime.datetime.now()
         sleep(int(interval))
 
 
