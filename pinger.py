@@ -28,25 +28,31 @@ def writeLogs(content, filename='logs.txt'):
 def main(argv):
     host = ""
     logLocation = ""
+    interval = 20
     try:
-        opts, args = getopt.getopt(argv, "hi:o", ["ipaddress=", "logs="])
+        opts, args = getopt.getopt(argv, "hi:o", ["ipaddress=", "logs=", "interval="])
     except getopt.GetoptError:
-        print("pinger.py -ip <hostIP> -l <logLocation>")
+        print("pinger.py -ip <hostIP> -l <logLocation> -i <interval>")
         sys.exit(2)
     for opt, arg in opts:
         if opt == "-h":
-            print("pinger.py -ip <hostIP> -l <logLocation>")
+            print("pinger.py -ip <hostIP> -l <logLocation> -i <interval>")
             sys.exit()
         elif opt in ("-ip", "--ipaddress"):
             host = arg
         elif opt in ("-l", "--logs"):
             logLocation = arg
+        elif opt in ("-i", "--interval"):
+            interval = arg
+    # print(host)
+    # print(logLocation)
+    # print(interval)
     while 1:
         if ping(host):
             writeLogs("\n" + str(datetime.datetime.now()) + " " + " UP", logLocation)
         else:
             writeLogs("\n" + str(datetime.datetime.now()) + " " + " DOWN", logLocation)
-        sleep(20)
+        sleep(int(interval))
 
 
 if __name__ == "__main__":
